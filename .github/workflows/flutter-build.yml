@@ -571,6 +571,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Replace config
+        if: env.RELAY_SERVER != '' || env.RS_PUB_KEY != '' || env.CUSTOM_API_URL != ''
+        run: |
+         python3 .github/scripts/replace_config.py
+
       - name: Install flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
