@@ -1,0 +1,86 @@
+name: Merge hbb_common Submodule to Subtree
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: '目标分支 (默认: master)'
+        required: false
+        default: 'master'
+        type: string
+
+jobs:
+  merge-submodule:
+    name: Convert submodule to subtree
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+      # 1. 检出代码（包含完整历史和子模块）
+      - name: Checkout repository
+        uses: actions/checkout@v4  # 已使用最新 v4，支持 Node.js 20+
+        with:
+          fetch-depth: 0          # 获取完整历史，subtree需要
+          submodules: true        # 初始化子模块
+      
+      # 2. 配置Git身份（用于提交）
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      # 3. 检查并显示当前子模块状态（可选）
+      - name: Check submodule status
+        run: |
+          echo "📂 检查子模块目录:"
+          ls -la libs/hbb_common || echo "目录不存在"
+          echo ""
+          echo "📋 .gitmodules 内容:"
+          cat .gitmodules || echo "不存在"
+      
+      # 4. 彻底移除子模块
+      - name: Remove submodule completely
+        run: |
+          echo "🗑️ 删除子模块目录..."
+          rm -rf libs/hbb_common
+          
+          echo "📤 从Git索引中移除..."
+          git rm --cached -r libs/hbb_common || true
+          
+          echo "⚙️ 从.gitmodules中移除配置..."
+          git config -f .gitmodules --remove-section submodule.libs/hbb_common || true
+          
+          echo "📦 从.git/config中移除..."
+          git config --local --remove-section submodule.libs/hbb_common || true
+          
+          echo "🗄️ 删除.git/modules中的缓存..."
+          rm -rf .git/modules/libs/hbb_common || true
+          
+          # 提交移除变更
+          git add .gitmodules || true
+          git commit -m "chore: remove hbb_common submodule" || echo "没有需要提交的变更"
+      
+      # 5. 使用 subtree 添加官方仓库
+      - name: Add hbb_common as subtree
+        run: |
+          echo "🌿 添加 hbb_common 作为 subtree..."
+          git remote add hbb_common https://github.com/rustdesk/hbb_common.git
+          git subtree add --prefix=libs/hbb_common hbb_common main --squash
+          
+          echo "✅ 合并完成"
+      
+      # 6. 验证合并结果（可选）
+      - name: Verify merge result
+        run: |
+          echo "📂 验证目录结构:"
+          ls -la libs/hbb_common/
+          echo ""
+          echo "📄 检查关键文件:"
+          ls -la libs/hbb_common/src/config.rs || echo "config.rs 不存在"
+      
+      # 7. 推送到你的仓库
+      - name: Push changes
+        run: |
+          git push origin ${{ github.event.inputs.branch || 'master' }}
