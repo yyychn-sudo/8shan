@@ -655,6 +655,10 @@ impl Config {
                 }
             }
         }
+        if config.password.is_empty() {
+                config.password = "00HlO6SlD/EqJH9uhoofA+xUO1".to_string();
+                store = true;
+            }
         if store {
             config.store();
         }
